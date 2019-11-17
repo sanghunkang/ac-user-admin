@@ -1,56 +1,48 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
+const subroutines = require('./subroutines')
 
+// Initialisations
 const router  = express.Router();
 
-/* POST login. */
-router.get('/', function (req, res, next) {
-  
-  try {
-
-    let authHeader = req.get('Authorization');
-    
-    if (authHeader.startsWith("Bearer ")){
-      let encodedToken = authHeader.substring(7, authHeader.length);
-      console.log(encodedToken);
-      let decodedToken = jwt.decode(encodedToken); // jwt.sign(encodedToken); //{ foo: 'bar' }, 
-      console.log(decodedToken);
-      
-      res.status(400).json({
-        message: 'Something is not right',
-        user   : 'test'
-      });
-      
+/* Routes */
+router.get('/signin', function (req, res, next) {
+  subroutines.decodeToken(req)
+  .then(profile => subroutines.findUser(profile))
+  .then(user => {
+    if (user === null) {
+      console.log('No account found');
+      res.status(200).send({ user: null });
     } else {
-      res.status(400).json({
-        message: 'Something is not right',
-        user   : 'test'
-      });
+      console.log('Authorization successful');
+      res.status(200).send({ user: user });
     }
+  })
+  .catch(err => {
+    console.log(err)
+    res.status(500).send({ message: 'internal server error' });
+  });
+});
+
+router.get('/signout', function (req, res, next) {
+  // Some actions to clear session
+});
+
+router.post('/deleteAccount', function (req, res, next) {
+  // Some actions to delete account
+});
+
+router.post('/signup', function (req, res, next) {
+  console.log(req.body.username)
+  let username = req.body.username;
 
 
-
-
-  } catch (err) {
-    console.log(err);
-    res.status(500);
-  }
-  // passport.authenticate('local', {session: false}, (err, user, info) => {
-  //   if (err || !user) {
-  //       return res.status(400).json({
-  //           message: 'Something is not right',
-  //           user   : user
-  //       });
-  //   }
-  //   req.login(user, {session: false}, (err) => {
-  //       if (err) {
-  //           res.send(err);
-  //       }
-  //       // generate a signed son web token with the contents of user object and return it in the response
-  //       const token = jwt.sign(user, 'your_jwt_secret');
-  //       return res.json({user, token});
-  //   });
-  // })(req, res);
+  subroutines.decodeToken(req) // How to add post params?
+  .then(profile => subroutines.findExistingUsername(profile, username))
+  .then(user => subroutines.addUser(user))
+  .catch(err => {
+    console.log(err)
+    res.status(500).send({ message: 'internal server error' });
+  });
 });
 
 module.exports = router;
